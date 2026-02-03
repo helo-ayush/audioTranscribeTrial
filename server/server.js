@@ -8,6 +8,8 @@ const path = require('path');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
+const cors = require('cors');
+app.use(cors());
 const port = process.env.PORT || 3000;
 
 // 1. Ensure 'uploads' directory exists (Best Practice)

@@ -25,8 +25,9 @@ function App() {
     formData.append('audio', file)
 
     try {
-      // Assuming server runs on port 3000
-      const response = await fetch('/api/trial', {
+      // Use environment variable for backend URL
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+      const response = await fetch(`${backendUrl}/api/trial`, {
         method: 'POST',
         body: formData,
       })
