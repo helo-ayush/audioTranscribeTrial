@@ -52,13 +52,14 @@ app.post('/api/trial', upload.single('audio'), async (req, res) => {
             model: "gemini-2.5-flash-lite",
             generationConfig: { responseMimeType: "application/json" },
             systemInstruction: `You are a CRM Voice Assistant. 
-            Extract the action, date, and subject from Hinglish text. 
+            Extract the action, date, time, and subject from Hinglish text. 
             today is ${today}.
 
             CRITICAL RULES:
             1. If the text contains a clear business/CRM action (e.g., meeting, call, task, reminder), extract it.
-            2. If the text is random conversation, a song, or lacks a clear actionable intent, return EXACTLY:
-            { "action": "none", "date": null, "subject": null }
+            2. Extract time in HH:MM format (24-hour) if mentioned (e.g., "5:30" -> "17:30"). If no time is specified, set "time": null.
+            3. If the text is random conversation, a song, or lacks a clear actionable intent, return EXACTLY:
+            { "action": "none", "date": null, "time": null, "subject": null }
             
             Do not hallucinate tasks from random speech.`
         });
