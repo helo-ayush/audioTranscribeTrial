@@ -51,23 +51,37 @@ app.post('/api/trial', upload.single('audio'), async (req, res) => {
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash-lite",
             generationConfig: { responseMimeType: "application/json" },
-            systemInstruction: `You are a CRM Voice Assistant. 
-            Extract the action, date, time, and subject from Hinglish text. 
+            systemInstruction: `You are a CRM Voice Assistant. Process the input text.
+            
+            OUTPUT FORMAT (JSON ONLY):
+            {
+              "normalized_text": "The input text transliterated into standardized Hinglish (Latin script). E.g., 'वह जो कल...' -> 'Voh jo kal...'",
+              "intent": {
+                "action": "The specific action to be performed (Verb + Noun). E.g., 'postpone meeting', 'schedule call', 'create task'. Avoid vague terms like 'meeting'.",
+                "date": "YYYY-MM-DD format. Use null if not mentioned.",
+                "time": "HH:MM (24-hour) format. Use null if not mentioned.",
+                "get_summary": "A concise, natural language summary of the request including context. E.g., 'Postponing the team meeting to tomorrow evening due to unavailability.'"
+              }
+            }
+
             today is ${today}.
 
             CRITICAL RULES:
-            1. If the text contains a clear business/CRM action (e.g., meeting, call, task, reminder), extract it.
-            2. Extract time in HH:MM format (24-hour) if mentioned (e.g., "5:30" -> "17:30"). If no time is specified, set "time": null.
-            3. If the text is random conversation, a song, or lacks a clear actionable intent, return EXACTLY:
-            { "action": "none", "date": null, "time": null, "subject": null }
+            1. NORMALIZATION: ALWAYS convert the transcribed text into clean Hinglish (English characters only). Remove any Hindi/Urdu script.
+            2. INTENT: 
+               - Action must include the *what* and the *verb* (e.g., 'cancel appointment' NOT just 'cancel').
+               - If text is random conversation or song, set action to "none".
             
-            Do not hallucinate tasks from random speech.`
+            Do not hallucinate.`
         });
 
         const prompt = `Convert this text to JSON: "${transcription}"`;
         const result = await model.generateContent(prompt);
         // With responseMimeType: "application/json", we can parse directly
-        const intent = JSON.parse(result.response.text());
+        const geminiResponse = JSON.parse(result.response.text());
+
+        const intent = geminiResponse.intent;
+        const normalizedText = geminiResponse.normalized_text;
 
         const latency = Date.now() - startTime;
 
@@ -75,7 +89,8 @@ app.post('/api/trial', upload.single('audio'), async (req, res) => {
         res.json({
             status: "success",
             latency_ms: latency,
-            transcription: transcription,
+            transcription: normalizedText, // Using the standard Hinglish output
+            original_transcription: transcription, // Keeping raw for debugging
             intent: intent
         });
 
